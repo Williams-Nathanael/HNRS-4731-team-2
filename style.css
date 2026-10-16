@@ -1,0 +1,346 @@
+/* style.css: how the app looks. Colors are set once here, so they're easy to change. */
+
+:root {
+  --black: #1b1b1b;
+  --gold: #f2b705;
+  --gold-light: #fff4cc;
+  --gray-bg: #f5f5f3;
+  --gray-line: #d9d9d4;
+  --gray-text: #5c5c58;
+  --white: #ffffff;
+  --red: #b3261e;
+  --green: #1e6b34;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Make sure anything marked "hidden" really is hidden */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--black);
+  background: var(--gray-bg);
+  line-height: 1.4;
+}
+
+h1, h2, h3 {
+  margin: 0;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  padding: 6px 12px;
+  border: 1px solid var(--gray-line);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--black);
+}
+
+button:hover {
+  border-color: var(--black);
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+}
+
+button.primary {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
+}
+
+button.danger {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  background: var(--black);
+  color: var(--white);
+  padding: 20px 16px;
+  border-bottom: 5px solid var(--gold);
+}
+
+.site-header p {
+  margin: 4px 0 0;
+  color: #d8d8d8;
+}
+
+/* ---------- Page layout: calendar on the left, forms on the right ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel, .calendar {
+  background: var(--white);
+  border: 1px solid var(--gray-line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.panel h2, .calendar h2 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+}
+
+/* ---------- Week calendar ---------- */
+
+.calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.calendar-toolbar h2 {
+  margin: 0;
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.day {
+  min-height: 300px;
+  padding: 6px;
+  border: 1px solid var(--gray-line);
+  border-radius: var(--radius);
+  background: var(--gray-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.day.today {
+  background: var(--gold-light);
+  border-color: var(--gold);
+}
+
+.day-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.day-name {
+  color: var(--gray-text);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.day-number {
+  font-size: 1.3rem;
+}
+
+.no-events {
+  margin: 0;
+  color: var(--gray-text);
+  font-size: 0.85rem;
+}
+
+.event-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 6px 8px;
+  border-left: 4px solid var(--gold);
+  overflow-wrap: anywhere;
+}
+
+.event-time {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.event-name {
+  font-weight: 600;
+}
+
+.event-location {
+  font-size: 0.8rem;
+  color: var(--gray-text);
+}
+
+/* ---------- Forms ---------- */
+
+form label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+form input, form select, form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px 8px;
+  border: 1px solid var(--gray-line);
+  border-radius: var(--radius);
+  font-weight: 400;
+  background: var(--white);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--gray-text);
+}
+
+.errors {
+  color: var(--red);
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.errors:empty {
+  display: none;
+}
+
+.success {
+  color: var(--green);
+  margin: 10px 0 0;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: var(--gray-text);
+  margin: 12px 0 0;
+}
+
+/* ---------- Search results ---------- */
+
+.search-summary {
+  margin: 12px 0 6px;
+  color: var(--gray-text);
+}
+
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  border-left: 4px solid var(--gold);
+}
+
+.result-when {
+  font-size: 0.8rem;
+  color: var(--gray-text);
+}
+
+.result-name {
+  font-weight: 600;
+}
+
+.result-location {
+  font-size: 0.85rem;
+}
+
+/* ---------- Event details pop-up ---------- */
+
+dialog {
+  width: min(460px, calc(100% - 32px));
+  border: none;
+  border-top: 5px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+dialog h2 {
+  margin-bottom: 8px;
+}
+
+.badge {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gold-light);
+  font-size: 0.8rem;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialog-buttons form {
+  margin: 0;
+}
+
+/* ---------- Smaller screens ---------- */
+
+/* Tablets: put the forms under the calendar */
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phones: list the days top to bottom instead of side by side */
+@media (max-width: 700px) {
+  .week-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .day {
+    min-height: 0;
+  }
+}

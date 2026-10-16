@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campus Events Tests</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px 16px; background: #fff; color: #1b1b1b; }
+    #summary { font-size: 1.4rem; font-weight: 700; }
+    .pass { color: #1e6b34; }
+    .fail { color: #b3261e; }
+    #results { list-style: none; padding: 0; line-height: 1.6; }
+    .test-frame { position: absolute; left: -9999px; width: 1200px; height: 800px; }
+  </style>
+</head>
+<body>
+  <h1>Campus Events: automatic tests</h1>
+  <p id="summary">Running…</p>
+  <ul id="results"></ul>
+
+  <script src="events.js"></script>
+  <script src="sample-data.js"></script>
+  <script src="tests.js"></script>
+</body>
+</html>

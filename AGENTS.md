@@ -20,12 +20,22 @@ team can't understand is worse than a plain one they can.
 > it, what the app does), the agent that made the change should update this section in
 > the same commit.
 
-- **App idea:** _TBD_
-- **Stack:** _TBD_ (see "Choosing a stack" below)
-- **How to install:** _TBD_
-- **How to run locally:** _TBD_
-- **How to run tests:** _TBD_
-- **Deployed at:** _TBD_
+- **App idea:** Harding Campus Events, a web page where students post campus events
+  (name, location, date, time) and see them on a week calendar, with search by keyword,
+  date range, and time of day. Audience: all Harding students.
+- **Constraints the team chose:** beginner-friendly tech, fictional sample data only, no
+  paid services, no logins, no complicated backend.
+- **Stack:** plain HTML + CSS + JavaScript. No frameworks, no npm, no build step.
+- **Where data lives:** events a user posts are saved in their own browser's
+  `localStorage`, so other users can't see them. Sample events come from
+  `sample-data.js`. Sharing events between users would need a backend or a hosted
+  database, so ask the team before adding one.
+- **How to install:** nothing to install.
+- **How to run locally:** double-click `index.html`, or run `python3 -m http.server 8000`
+  in the repo folder and open http://localhost:8000.
+- **How to run tests:** start the local server above and open
+  http://localhost:8000/tests.html. All tests should pass before merging.
+- **Deployed at:** GitHub Pages (see README for setup), _URL TBD_
 
 ## Ground rules for agents
 
@@ -115,7 +125,17 @@ Once it's chosen, write it in "Project status" and stick to it.
 
 > Fill these in as the team settles on them.
 
-- **Folder structure:** _TBD_
-- **Code style / formatter:** _TBD_ (use the stack's standard formatter, e.g. Prettier or
-  Black, and only run it on files you changed)
-- **Naming:** _TBD_
+- **Folder structure:** everything is in the repo root.
+  - `index.html`: the page layout
+  - `style.css`: all styling; colors are variables at the top
+  - `events.js`: logic only (dates, search, validation, saving) and never touches the page
+  - `sample-data.js`: fictional events, placed relative to the current week
+  - `app.js`: connects the page to `events.js` (drawing, forms, buttons)
+  - `tests.html` + `tests.js`: automatic tests that run in the browser
+- **Scripts:** plain `<script>` tags, not ES modules, so the app still works when
+  `index.html` is opened straight from a file. Load order in `index.html` matters.
+- **Safety:** put user text on the page with `textContent`, never `innerHTML`.
+- **Tests:** when you add or change logic in `events.js` or behavior in `app.js`, add a
+  test in `tests.js`.
+- **Code style:** 2-space indent, double quotes, semicolons, short commented sections.
+- **Naming:** camelCase for variables and functions; ids and classes use kebab-case.

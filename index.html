@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harding Campus Events</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Harding Campus Events</h1>
+    <p>See what's happening around campus, and post your own events.</p>
+  </header>
+
+  <main class="layout">
+    <!-- The week calendar -->
+    <section class="calendar" aria-labelledby="calendar-heading">
+      <div class="calendar-toolbar">
+        <h2 id="calendar-heading"><span id="week-label"></span></h2>
+        <div class="toolbar-buttons">
+          <button type="button" id="prev-week">← Previous</button>
+          <button type="button" id="this-week">This week</button>
+          <button type="button" id="next-week">Next →</button>
+        </div>
+      </div>
+      <div id="week-grid" class="week-grid"></div>
+    </section>
+
+    <div class="sidebar">
+      <!-- Post a new event -->
+      <section class="panel" aria-labelledby="post-heading">
+        <h2 id="post-heading">Post an event</h2>
+        <form id="post-form" novalidate>
+          <label>Event name
+            <input name="name" maxlength="100" placeholder="e.g. Open Mic Night">
+          </label>
+          <label>Location
+            <input name="location" maxlength="100" placeholder="e.g. Student Center">
+          </label>
+          <div class="row">
+            <label>Date
+              <input type="date" name="date" id="post-date">
+            </label>
+            <label>Start time
+              <input type="time" name="time">
+            </label>
+          </div>
+          <label>Description <span class="optional">(optional)</span>
+            <textarea name="description" rows="3" maxlength="500"></textarea>
+          </label>
+          <ul id="post-errors" class="errors" role="alert"></ul>
+          <button type="submit" class="primary">Post event</button>
+          <p id="post-message" class="success" role="status"></p>
+        </form>
+        <p class="note">Events you post are saved in this browser only, so other people won't see them yet.</p>
+      </section>
+
+      <!-- Search -->
+      <section class="panel" aria-labelledby="search-heading">
+        <h2 id="search-heading">Search events</h2>
+        <form id="search-form">
+          <label>Keywords
+            <input type="search" name="keyword" placeholder="e.g. soccer, library, coffee">
+          </label>
+          <div class="row">
+            <label>From
+              <input type="date" name="from">
+            </label>
+            <label>To
+              <input type="date" name="to">
+            </label>
+          </div>
+          <label>Time of day
+            <select name="timeOfDay">
+              <option value="any">Any time</option>
+              <option value="morning">Morning (before noon)</option>
+              <option value="afternoon">Afternoon (noon – 5 PM)</option>
+              <option value="evening">Evening (after 5 PM)</option>
+            </select>
+          </label>
+          <button type="reset">Clear search</button>
+        </form>
+        <p id="search-summary" class="search-summary" role="status"></p>
+        <ul id="search-results" class="search-results"></ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- Pop-up with an event's details -->
+  <dialog id="event-dialog">
+    <h2 id="dialog-name"></h2>
+    <p id="dialog-sample" class="badge">Sample event</p>
+    <p><strong>When:</strong> <span id="dialog-when"></span></p>
+    <p><strong>Where:</strong> <span id="dialog-location"></span></p>
+    <p id="dialog-description"></p>
+    <div class="dialog-buttons">
+      <button type="button" id="dialog-delete" class="danger">Delete my event</button>
+      <form method="dialog"><button class="primary">Close</button></form>
+    </div>
+  </dialog>
+
+  <!-- Order matters: app.js uses functions from the first two files -->
+  <script src="events.js"></script>
+  <script src="sample-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
