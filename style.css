@@ -136,7 +136,29 @@ button.danger {
 
 .toolbar-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Week / Month switch: two buttons joined together */
+.view-switch {
+  display: flex;
+  margin-right: 6px;
+}
+
+.view-switch button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.view-switch button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-left: -1px;
+}
+
+.view-switch button[aria-pressed="true"] {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
 }
 
 .week-grid {
@@ -156,29 +178,34 @@ button.danger {
   gap: 6px;
 }
 
-.day.friday {
+/* These day colors apply to both the week view (.day) and month view (.month-day) */
+.day.friday, .month-day.friday {
   background: var(--friday-bg);
   border-color: var(--friday-line);
 }
 
-.day.weekend {
+.day.weekend, .month-day.weekend {
   background: var(--weekend-bg);
   border-color: var(--weekend-line);
 }
 
 /* Darker label so it's easy to read on the purple */
-.day.weekend .day-name {
+.weekend .day-name, .weekend .month-day-name {
   color: var(--black);
 }
 
 /* Today keeps its day's color (purple on Fridays and weekends) and gets a
    thick gold border, so it stands out on any day */
-.day.today {
+.day.today, .month-day.today {
   border: 3px solid var(--gold);
+}
+
+.day.today {
   padding: 4px; /* 2px less, to make up for the thicker border */
 }
 
-.day.today:not(.friday):not(.weekend) {
+.day.today:not(.friday):not(.weekend),
+.month-day.today:not(.friday):not(.weekend) {
   background: var(--gold-light);
 }
 
@@ -243,6 +270,75 @@ button.danger {
 .event-location {
   font-size: 0.8rem;
   color: var(--gray-text);
+}
+
+/* ---------- Month calendar ---------- */
+
+.month-weekdays, .month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.month-weekdays {
+  margin-bottom: 4px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gray-text);
+}
+
+.month-day {
+  min-height: 96px;
+  padding: 4px;
+  border: 1px solid var(--gray-line);
+  border-radius: var(--radius);
+  background: var(--gray-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.month-day.today {
+  padding: 2px; /* 2px less, to make up for the thicker border */
+}
+
+/* Days from the month before or after */
+.month-day.outside-month {
+  opacity: 0.45;
+}
+
+.month-day-heading {
+  font-size: 0.9rem;
+}
+
+/* Only needed on phones (see the bottom of this file) */
+.month-day-name {
+  display: none;
+}
+
+/* One compact line per event: time + name, cut off with "…" after two lines */
+.month-event {
+  width: 100%;
+  padding: 2px 4px;
+  border-left: 4px solid var(--tone-color, var(--tone-standard));
+  border-radius: 4px;
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.month-event-time {
+  font-weight: 700;
+  margin-right: 4px;
 }
 
 /* ---------- Forms ---------- */
@@ -421,5 +517,39 @@ dialog h2 {
 
   .day {
     min-height: 0;
+  }
+
+  /* Month view on phones: a list of just the days in this month that have events */
+  .month-weekdays {
+    display: none;
+  }
+
+  .month-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .month-day {
+    min-height: 0;
+  }
+
+  .month-day.outside-month, .month-day.empty {
+    display: none;
+  }
+
+  .month-day-heading {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .month-day-name {
+    display: inline;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--gray-text);
+  }
+
+  .month-event {
+    font-size: 0.9rem;
   }
 }

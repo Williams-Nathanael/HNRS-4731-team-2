@@ -82,6 +82,27 @@ function runFunctionTests() {
     assertEqual(formatTime("19:30"), "7:30 PM");
   });
 
+  test("month helpers find the 1st of the month", function () {
+    assertEqual(toDateString(startOfMonth(new Date(2026, 9, 16))), "2026-10-01");
+    assertEqual(toDateString(addMonths(new Date(2026, 9, 16), 1)), "2026-11-01");
+    assertEqual(toDateString(addMonths(new Date(2026, 11, 31), 1)), "2027-01-01", "into next year");
+    assertEqual(toDateString(addMonths(new Date(2026, 0, 31), -1)), "2025-12-01", "into last year");
+    assertEqual(formatMonthLabel(new Date(2026, 9, 1)), "October 2026");
+  });
+
+  test("month grid covers whole Monday-to-Sunday weeks", function () {
+    // October 2026 starts on a Thursday and ends on a Saturday
+    const october = getMonthGridDays(new Date(2026, 9, 1)).map(toDateString);
+    assertEqual(october.length, 35);
+    assertEqual(october[0], "2026-09-28");
+    assertEqual(october[34], "2026-11-01");
+    // February 2027 starts on a Monday and ends on a Sunday: exactly 4 weeks
+    const february = getMonthGridDays(new Date(2027, 1, 1)).map(toDateString);
+    assertEqual(february.length, 28);
+    assertEqual(february[0], "2027-02-01");
+    assertEqual(february[27], "2027-02-28");
+  });
+
   test("week label reads like 'Oct 12 – Oct 18, 2026'", function () {
     assertEqual(formatWeekRange(new Date(2026, 9, 12)), "Oct 12 – Oct 18, 2026");
   });
@@ -205,7 +226,7 @@ function runPageTests(done) {
       input.value = value;
       input.dispatchEvent(new win.Event("input", { bubbles: true }));
     };
-    const thisWeekLabel = find("#week-label").textContent;
+    const thisWeekLabel = find("#period-label").textContent;
 
     test("page: the calendar shows 7 days", function () {
       assertEqual(findAll("#week-grid .day").length, 7);
@@ -251,7 +272,7 @@ function runPageTests(done) {
       assert(card.classList.contains("tone-formal"), "card isn't colored as formal");
       assertEqual(win.getComputedStyle(card).borderLeftColor, "rgb(242, 183, 5)", "formal stripe color");
       assert(find("#post-form [name=tone][value=standard]").checked, "tone didn't reset to standard");
-      assert(find("#week-label").textContent !== thisWeekLabel, "calendar didn't jump to next week");
+      assert(find("#period-label").textContent !== thisWeekLabel, "calendar didn't jump to next week");
       assert(find("#post-message").textContent.includes("Posted"), "no success message");
       assert((localStorage.getItem(STORAGE_KEY) || "").includes("Test Event Zebra"), "not saved");
       assertEqual(find("#post-form [name=name]").value, "", "form not cleared");
@@ -299,7 +320,7 @@ function runPageTests(done) {
     });
 
     test("page: sample events can't be deleted", function () {
-      find("#this-week").click();
+      find("#today-button").click();
       find("#week-grid .event-card").click();
       assertEqual(find("#dialog-delete").hidden, true);
       assertEqual(find("#dialog-sample").hidden, false, "sample badge missing");
@@ -307,14 +328,75 @@ function runPageTests(done) {
     });
 
     test("page: Previous / Next / This week buttons change the week", function () {
-      find("#prev-week").click();
-      const lastWeekLabel = find("#week-label").textContent;
+      find("#prev-period").click();
+      const lastWeekLabel = find("#period-label").textContent;
       assert(lastWeekLabel !== thisWeekLabel, "Previous didn't change the week");
-      find("#next-week").click();
-      find("#next-week").click();
-      assert(find("#week-label").textContent !== lastWeekLabel, "Next didn't change the week");
-      find("#this-week").click();
-      assertEqual(find("#week-label").textContent, thisWeekLabel);
+      find("#next-period").click();
+      find("#next-period").click();
+      assert(find("#period-label").textContent !== lastWeekLabel, "Next didn't change the week");
+      find("#today-button").click();
+      assertEqual(find("#period-label").textContent, thisWeekLabel);
+    });
+
+    test("page: the Month button switches to a month calendar", function () {
+      find("#month-view-button").click();
+      assert(find("#week-grid").hidden, "week view still showing");
+      assert(!find("#month-view").hidden, "month view not showing");
+      assertEqual(find("#month-view-button").getAttribute("aria-pressed"), "true");
+      assertEqual(find("#period-label").textContent, formatMonthLabel(startOfMonth(new Date())));
+      const cells = findAll("#month-grid .month-day");
+      assert(cells.length >= 28 && cells.length % 7 === 0, "month grid should be whole weeks, got " + cells.length);
+      assertEqual(findAll("#month-grid .month-day.today").length, 1, "today highlighted");
+    });
+
+    test("page: month view shows each event as just time and name", function () {
+      const entries = findAll("#month-grid .month-event");
+      assert(entries.length > 0, "no events in the month view");
+      const entry = entries[0];
+      assert(entry.querySelector(".month-event-time"), "missing time");
+      assert(entry.querySelector(".month-event-name"), "missing name");
+      assertEqual(entry.children.length, 2, "should only have time and name");
+      // Check against the real data: every sample event this month is on its day
+      const thisMonth = startOfMonth(new Date()).getMonth();
+      const expected = getSampleEvents(new Date()).filter(function (e) {
+        return parseDateString(e.date).getMonth() === thisMonth;
+      });
+      assert(entries.length >= expected.length, "some of this month's events are missing");
+    });
+
+    test("page: month view uses the Friday and weekend colors", function () {
+      const background = function (el) { return win.getComputedStyle(el).backgroundColor; };
+      const cells = findAll("#month-grid .month-day"); // each row is Monday to Sunday
+      assertEqual(background(cells[4]), "rgb(241, 234, 251)", "Friday");
+      assertEqual(background(cells[5]), "rgb(201, 179, 234)", "Saturday");
+      assertEqual(background(cells[6]), "rgb(201, 179, 234)", "Sunday");
+    });
+
+    test("page: clicking an event in month view opens its details", function () {
+      const entry = find("#month-grid .month-event");
+      const name = entry.querySelector(".month-event-name").textContent;
+      entry.click();
+      assert(find("#event-dialog").open, "details didn't open");
+      assertEqual(find("#dialog-name").textContent, name);
+      find("#event-dialog").close();
+    });
+
+    test("page: Previous / Next move by a month in month view", function () {
+      const thisMonthLabel = find("#period-label").textContent;
+      find("#next-period").click();
+      assertEqual(find("#period-label").textContent, formatMonthLabel(addMonths(new Date(), 1)));
+      find("#prev-period").click();
+      find("#prev-period").click();
+      assertEqual(find("#period-label").textContent, formatMonthLabel(addMonths(new Date(), -1)));
+      find("#today-button").click();
+      assertEqual(find("#period-label").textContent, thisMonthLabel);
+    });
+
+    test("page: the Week button switches back", function () {
+      find("#week-view-button").click();
+      assert(!find("#week-grid").hidden, "week view not showing");
+      assert(find("#month-view").hidden, "month view still showing");
+      assertEqual(find("#period-label").textContent, thisWeekLabel);
     });
 
     test("page: event names can't inject HTML", function () {

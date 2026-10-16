@@ -1,6 +1,6 @@
 // app.js
 // Connects the web page (index.html) to the functions in events.js:
-// draws the week, handles the "Post an event" form, and runs searches.
+// draws the week or month calendar, handles the "Post an event" form, and runs searches.
 
 // ---------- App data ----------
 
@@ -16,7 +16,8 @@ function getStorage() {
 const storage = getStorage();
 const sampleEvents = getSampleEvents(new Date());
 let savedEvents = loadSavedEvents(storage);   // events posted in this browser
-let shownWeekStart = startOfWeek(new Date()); // the Monday of the week on screen
+let calendarView = "week"; // "week" or "month"
+let shownDate = new Date(); // the calendar shows the week or month containing this day
 let eventInDialog = null;
 
 function allEvents() {
@@ -25,8 +26,12 @@ function allEvents() {
 
 // ---------- Page elements ----------
 
-const weekLabel = document.getElementById("week-label");
+const periodLabel = document.getElementById("period-label");
 const weekGrid = document.getElementById("week-grid");
+const monthView = document.getElementById("month-view");
+const monthGrid = document.getElementById("month-grid");
+const weekViewButton = document.getElementById("week-view-button");
+const monthViewButton = document.getElementById("month-view-button");
 const postForm = document.getElementById("post-form");
 const postDate = document.getElementById("post-date");
 const postErrors = document.getElementById("post-errors");
@@ -46,20 +51,34 @@ function makeElement(tag, className, text) {
   return element;
 }
 
-// ---------- The week calendar ----------
+// ---------- The calendar (week or month) ----------
+
+// Draws whichever calendar view is chosen
+function renderCalendar() {
+  const showingMonth = calendarView === "month";
+  weekGrid.hidden = showingMonth;
+  monthView.hidden = !showingMonth;
+  weekViewButton.setAttribute("aria-pressed", String(!showingMonth));
+  monthViewButton.setAttribute("aria-pressed", String(showingMonth));
+  if (showingMonth) renderMonth();
+  else renderWeek();
+}
+
+// Today, Fridays, and weekends get their own colors (see style.css)
+function addDayColors(element, day) {
+  if (toDateString(day) === toDateString(new Date())) element.classList.add("today");
+  if (day.getDay() === 5) element.classList.add("friday");
+  if (day.getDay() === 0 || day.getDay() === 6) element.classList.add("weekend");
+}
 
 function renderWeek() {
-  weekLabel.textContent = formatWeekRange(shownWeekStart);
+  const weekStart = startOfWeek(shownDate);
+  periodLabel.textContent = formatWeekRange(weekStart);
   weekGrid.replaceChildren();
-  const today = toDateString(new Date());
 
-  getWeekDays(shownWeekStart).forEach(function (day) {
-    const dateString = toDateString(day);
+  getWeekDays(weekStart).forEach(function (day) {
     const column = makeElement("div", "day");
-    if (dateString === today) column.classList.add("today");
-    // Fridays and weekends get their own colors (see style.css)
-    if (day.getDay() === 5) column.classList.add("friday");
-    if (day.getDay() === 0 || day.getDay() === 6) column.classList.add("weekend");
+    addDayColors(column, day);
 
     const heading = makeElement("h3", "day-heading");
     heading.append(
@@ -68,7 +87,7 @@ function renderWeek() {
     );
     column.append(heading);
 
-    const dayEvents = eventsOnDate(allEvents(), dateString);
+    const dayEvents = eventsOnDate(allEvents(), toDateString(day));
     if (dayEvents.length === 0) {
       column.append(makeElement("p", "no-events", "No events"));
     }
@@ -80,6 +99,36 @@ function renderWeek() {
   });
 }
 
+function renderMonth() {
+  const monthStart = startOfMonth(shownDate);
+  periodLabel.textContent = formatMonthLabel(monthStart);
+  monthGrid.replaceChildren();
+
+  getMonthGridDays(monthStart).forEach(function (day) {
+    const cell = makeElement("div", "month-day");
+    addDayColors(cell, day);
+    // Days from the month before or after are shown faded
+    if (day.getMonth() !== monthStart.getMonth()) cell.classList.add("outside-month");
+
+    // The weekday name only shows on phones, where days are listed instead of in a grid
+    const heading = makeElement("h3", "month-day-heading");
+    heading.append(
+      makeElement("span", "month-day-name", day.toLocaleDateString("en-US", { weekday: "short" })),
+      makeElement("span", "month-day-number", day.getDate())
+    );
+    cell.append(heading);
+
+    const dayEvents = eventsOnDate(allEvents(), toDateString(day));
+    if (dayEvents.length === 0) cell.classList.add("empty");
+    dayEvents.forEach(function (event) {
+      cell.append(makeCompactEvent(event));
+    });
+
+    monthGrid.append(cell);
+  });
+}
+
+// Full card for the week view: time, name, and location
 function makeEventCard(event) {
   const card = makeElement("button", "event-card tone-" + (event.tone || DEFAULT_TONE));
   card.type = "button";
@@ -94,24 +143,51 @@ function makeEventCard(event) {
   return card;
 }
 
-function showWeekOf(dateString) {
-  shownWeekStart = startOfWeek(parseDateString(dateString));
-  renderWeek();
+// Small entry for the month view: just time and name
+function makeCompactEvent(event) {
+  const entry = makeElement("button", "month-event tone-" + (event.tone || DEFAULT_TONE));
+  entry.type = "button";
+  entry.title = formatTime(event.time) + " " + event.name; // full text on hover, in case it's cut off
+  entry.append(
+    makeElement("span", "month-event-time", formatTime(event.time)),
+    makeElement("span", "month-event-name", event.name)
+  );
+  entry.addEventListener("click", function () {
+    showDetails(event);
+  });
+  return entry;
 }
 
-document.getElementById("prev-week").addEventListener("click", function () {
-  shownWeekStart = addDays(shownWeekStart, -7);
-  renderWeek();
+// Jumps the calendar to the week or month containing a date like "2026-10-16"
+function showDate(dateString) {
+  shownDate = parseDateString(dateString);
+  renderCalendar();
+}
+
+weekViewButton.addEventListener("click", function () {
+  calendarView = "week";
+  renderCalendar();
 });
 
-document.getElementById("next-week").addEventListener("click", function () {
-  shownWeekStart = addDays(shownWeekStart, 7);
-  renderWeek();
+monthViewButton.addEventListener("click", function () {
+  calendarView = "month";
+  renderCalendar();
 });
 
-document.getElementById("this-week").addEventListener("click", function () {
-  shownWeekStart = startOfWeek(new Date());
-  renderWeek();
+// Previous / Next move by a week or a month, depending on the view
+document.getElementById("prev-period").addEventListener("click", function () {
+  shownDate = calendarView === "month" ? addMonths(shownDate, -1) : addDays(shownDate, -7);
+  renderCalendar();
+});
+
+document.getElementById("next-period").addEventListener("click", function () {
+  shownDate = calendarView === "month" ? addMonths(shownDate, 1) : addDays(shownDate, 7);
+  renderCalendar();
+});
+
+document.getElementById("today-button").addEventListener("click", function () {
+  shownDate = new Date();
+  renderCalendar();
 });
 
 // ---------- Event details pop-up ----------
@@ -139,7 +215,7 @@ deleteButton.addEventListener("click", function () {
   });
   saveEvents(storage, savedEvents);
   dialog.close();
-  renderWeek();
+  renderCalendar();
   runSearch();
 });
 
@@ -170,7 +246,7 @@ postForm.addEventListener("submit", function (submitEvent) {
 
   postForm.reset();
   postDate.value = toDateString(new Date());
-  showWeekOf(newEvent.date); // jump to the week of the new event
+  showDate(newEvent.date); // jump to the new event on the calendar
   runSearch();
 });
 
@@ -207,7 +283,7 @@ function runSearch() {
       makeElement("span", "result-location", event.location)
     );
     button.addEventListener("click", function () {
-      showWeekOf(event.date);
+      showDate(event.date);
       showDetails(event);
     });
     item.append(button);
@@ -230,5 +306,5 @@ searchForm.addEventListener("reset", function () {
 // ---------- Start the app ----------
 
 postDate.value = toDateString(new Date());
-renderWeek();
+renderCalendar();
 runSearch();

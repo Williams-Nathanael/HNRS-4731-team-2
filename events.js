@@ -60,6 +60,29 @@ function getWeekDays(weekStart) {
   return days;
 }
 
+// The 1st of the month containing `date`
+function startOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+// The 1st of the month `months` months after `date` (negative goes back)
+function addMonths(date, months) {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+// Every day shown on a month calendar: whole weeks (Monday to Sunday) from the
+// week containing the 1st to the week containing the last day of the month.
+// So it includes a few days from the months before and after.
+function getMonthGridDays(monthStart) {
+  const lastDay = addDays(addMonths(monthStart, 1), -1);
+  const gridEnd = addDays(startOfWeek(lastDay), 6);
+  const days = [];
+  for (let day = startOfWeek(monthStart); day <= gridEnd; day = addDays(day, 1)) {
+    days.push(day);
+  }
+  return days;
+}
+
 // Checks text like "2026-10-16" is a real date (so "2026-02-30" fails)
 function isValidDateString(text) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
@@ -100,6 +123,11 @@ function formatWeekRange(weekStart) {
   const options = { month: "short", day: "numeric" };
   return weekStart.toLocaleDateString("en-US", options) + " – " +
     weekEnd.toLocaleDateString("en-US", options) + ", " + weekEnd.getFullYear();
+}
+
+// Oct 1, 2026 -> "October 2026"
+function formatMonthLabel(monthStart) {
+  return monthStart.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 // "09:00" -> "morning", "13:00" -> "afternoon", "19:00" -> "evening"

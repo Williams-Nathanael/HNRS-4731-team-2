@@ -16,14 +16,26 @@
     <!-- The week calendar -->
     <section class="calendar" aria-labelledby="calendar-heading">
       <div class="calendar-toolbar">
-        <h2 id="calendar-heading"><span id="week-label"></span></h2>
+        <h2 id="calendar-heading"><span id="period-label"></span></h2>
         <div class="toolbar-buttons">
-          <button type="button" id="prev-week">← Previous</button>
-          <button type="button" id="this-week">This week</button>
-          <button type="button" id="next-week">Next →</button>
+          <!-- Switch between the week and month calendars -->
+          <div class="view-switch" role="group" aria-label="Calendar view">
+            <button type="button" id="week-view-button" aria-pressed="true">Week</button>
+            <button type="button" id="month-view-button" aria-pressed="false">Month</button>
+          </div>
+          <button type="button" id="prev-period">← Previous</button>
+          <button type="button" id="today-button">Today</button>
+          <button type="button" id="next-period">Next →</button>
         </div>
       </div>
       <div id="week-grid" class="week-grid"></div>
+      <div id="month-view" class="month-view" hidden>
+        <div class="month-weekdays" aria-hidden="true">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
+          <span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div id="month-grid" class="month-grid"></div>
+      </div>
     </section>
 
     <div class="sidebar">
