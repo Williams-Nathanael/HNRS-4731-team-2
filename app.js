@@ -78,7 +78,7 @@ function renderWeek() {
 }
 
 function makeEventCard(event) {
-  const card = makeElement("button", "event-card");
+  const card = makeElement("button", "event-card tone-" + (event.tone || DEFAULT_TONE));
   card.type = "button";
   card.append(
     makeElement("span", "event-time", formatTime(event.time)),
@@ -119,6 +119,9 @@ function showDetails(event) {
   document.getElementById("dialog-when").textContent =
     formatLongDate(event.date) + " at " + formatTime(event.time);
   document.getElementById("dialog-location").textContent = event.location;
+  const tone = event.tone || DEFAULT_TONE;
+  document.getElementById("dialog-tone").textContent = tone.charAt(0).toUpperCase() + tone.slice(1);
+  dialog.className = "tone-" + tone; // colors the pop-up's top stripe
   document.getElementById("dialog-description").textContent = event.description || "";
   document.getElementById("dialog-sample").hidden = !event.sample;
   deleteButton.hidden = Boolean(event.sample); // you can only delete events you posted
@@ -193,7 +196,7 @@ function runSearch() {
 
   matches.forEach(function (event) {
     const item = makeElement("li");
-    const button = makeElement("button", "result");
+    const button = makeElement("button", "result tone-" + (event.tone || DEFAULT_TONE));
     button.type = "button";
     button.append(
       makeElement("span", "result-when", formatShortDate(event.date) + " · " + formatTime(event.time)),

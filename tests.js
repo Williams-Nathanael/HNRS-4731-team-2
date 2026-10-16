@@ -109,6 +109,21 @@ function runFunctionTests() {
     assertEqual(result.errors.length, 1);
   });
 
+  test("events without a tone get the standard tone", function () {
+    const result = validateEvent({ name: "X", location: "Y", date: "2026-10-20", time: "10:00" });
+    assertEqual(result.event.tone, "standard");
+  });
+
+  test("casual, standard, and formal tones are accepted; others aren't", function () {
+    TONES.forEach(function (tone) {
+      const result = validateEvent({ name: "X", location: "Y", date: "2026-10-20", time: "10:00", tone: tone });
+      assertEqual(result.errors, [], tone);
+      assertEqual(result.event.tone, tone);
+    });
+    const bad = validateEvent({ name: "X", location: "Y", date: "2026-10-20", time: "10:00", tone: "fancy" });
+    assertEqual(bad.errors, ["Please pick casual, standard, or formal."]);
+  });
+
   test("keyword search ignores upper/lower case and checks name, location, description", function () {
     assertEqual(namesOf(searchEvents(exampleEvents, { keyword: "SOCCER" })), ["Soccer Game"]);
     assertEqual(namesOf(searchEvents(exampleEvents, { keyword: "library" })), ["Study Hall"]);
@@ -212,10 +227,17 @@ function runPageTests(done) {
       type("#post-form [name=location]", "Test Hall");
       type("#post-form [name=date]", nextWeekDate);
       type("#post-form [name=time]", "13:00");
+      find("#post-form [name=tone][value=formal]").checked = true;
       find("#post-form").requestSubmit();
 
       assertEqual(findAll("#post-errors li").length, 0, "errors shown");
       assert(find("#week-grid").textContent.includes("Test Event Zebra"), "new event not on calendar");
+      const card = Array.from(findAll("#week-grid .event-card")).find(function (el) {
+        return el.textContent.includes("Test Event Zebra");
+      });
+      assert(card.classList.contains("tone-formal"), "card isn't colored as formal");
+      assertEqual(win.getComputedStyle(card).borderLeftColor, "rgb(154, 114, 0)", "formal stripe color");
+      assert(find("#post-form [name=tone][value=standard]").checked, "tone didn't reset to standard");
       assert(find("#week-label").textContent !== thisWeekLabel, "calendar didn't jump to next week");
       assert(find("#post-message").textContent.includes("Posted"), "no success message");
       assert((localStorage.getItem(STORAGE_KEY) || "").includes("Test Event Zebra"), "not saved");
@@ -251,6 +273,7 @@ function runPageTests(done) {
       find("#search-results .result").click();
       assert(find("#event-dialog").open, "details didn't open");
       assertEqual(find("#dialog-name").textContent, "Test Event Zebra");
+      assertEqual(find("#dialog-tone").textContent, "Formal");
       assertEqual(find("#dialog-delete").hidden, false, "delete button should show for your own event");
     });
 

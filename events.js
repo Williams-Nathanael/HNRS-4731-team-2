@@ -10,10 +10,15 @@
 //     date: "2026-10-16",      // year-month-day
 //     time: "19:30",           // 24-hour clock
 //     description: "Bring a song or a poem!",
+//     tone: "casual",          // "casual", "standard", or "formal" (sets the color)
 //     sample: true             // only on the built-in fictional events
 //   }
 
 const STORAGE_KEY = "harding-campus-events";
+
+// How formal an event is. Each one gets its own color stripe (see style.css).
+const TONES = ["casual", "standard", "formal"];
+const DEFAULT_TONE = "standard";
 
 // ---------- Dates and times ----------
 
@@ -146,7 +151,9 @@ function validateEvent(input) {
     location: String(input.location || "").trim(),
     date: String(input.date || "").trim(),
     time: String(input.time || "").trim(),
-    description: String(input.description || "").trim()
+    description: String(input.description || "").trim(),
+    // Events saved before tones existed don't have one, so they get the default
+    tone: String(input.tone || DEFAULT_TONE).trim()
   };
   const errors = [];
 
@@ -163,6 +170,8 @@ function validateEvent(input) {
   else if (!isValidTimeString(event.time)) errors.push("That time doesn't look right.");
 
   if (event.description.length > 500) errors.push("The description is too long (500 characters max).");
+
+  if (!TONES.includes(event.tone)) errors.push("Please pick casual, standard, or formal.");
 
   return { errors: errors, event: event };
 }

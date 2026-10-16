@@ -2,7 +2,7 @@
 
 A simple web page for keeping track of events around campus. Students can:
 
-- **Post an event** with a name, location, date, and start time (and an optional description)
+- **Post an event** with a name, location, date, start time, an optional description, and a style (casual, standard, or formal) that sets its color
 - **See events on a week calendar**, using Previous / Next to move between weeks
 - **Search events** by keyword, date range, or time of day
 
@@ -29,7 +29,7 @@ then go to http://localhost:8000 in your browser. Press `Ctrl+C` in the terminal
 ## Run the tests
 
 With the local server running, open http://localhost:8000/tests.html. You should see
-"All 32 tests passed ✓". If you open `tests.html` by double-clicking instead, only the
+"All 34 tests passed ✓". If you open `tests.html` by double-clicking instead, only the
 logic tests run, because browsers block the tests that click through the page.
 
 ## Put it online with GitHub Pages (free)

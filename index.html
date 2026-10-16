@@ -48,6 +48,19 @@
           <label>Description <span class="optional">(optional)</span>
             <textarea name="description" rows="3" maxlength="500"></textarea>
           </label>
+          <!-- Sets the color stripe on the event: light yellow to dark gold -->
+          <fieldset class="tone-picker">
+            <legend>How formal is it?</legend>
+            <label class="tone-option tone-casual">
+              <input type="radio" name="tone" value="casual"> Casual
+            </label>
+            <label class="tone-option tone-standard">
+              <input type="radio" name="tone" value="standard" checked> Standard
+            </label>
+            <label class="tone-option tone-formal">
+              <input type="radio" name="tone" value="formal"> Formal
+            </label>
+          </fieldset>
           <ul id="post-errors" class="errors" role="alert"></ul>
           <button type="submit" class="primary">Post event</button>
           <p id="post-message" class="success" role="status"></p>
@@ -92,6 +105,7 @@
     <p id="dialog-sample" class="badge">Sample event</p>
     <p><strong>When:</strong> <span id="dialog-when"></span></p>
     <p><strong>Where:</strong> <span id="dialog-location"></span></p>
+    <p><strong>Style:</strong> <span id="dialog-tone"></span></p>
     <p id="dialog-description"></p>
     <div class="dialog-buttons">
       <button type="button" id="dialog-delete" class="danger">Delete my event</button>
