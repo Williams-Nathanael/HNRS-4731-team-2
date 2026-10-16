@@ -29,7 +29,7 @@ then go to http://localhost:8000 in your browser. Press `Ctrl+C` in the terminal
 ## Run the tests
 
 With the local server running, open http://localhost:8000/tests.html. You should see
-"All 34 tests passed ✓". If you open `tests.html` by double-clicking instead, only the
+"All 35 tests passed ✓". If you open `tests.html` by double-clicking instead, only the
 logic tests run, because browsers block the tests that click through the page.
 
 ## Put it online with GitHub Pages (free)

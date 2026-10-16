@@ -214,6 +214,15 @@ function runPageTests(done) {
       assert(findAll("#week-grid .event-card").length > 0, "no event cards on the calendar");
     });
 
+    test("page: Friday is pale purple, Saturday and Sunday are medium purple", function () {
+      const days = findAll("#week-grid .day"); // Sunday first
+      const background = function (el) { return win.getComputedStyle(el).backgroundColor; };
+      assertEqual(background(days[5]), "rgb(241, 234, 251)", "Friday");
+      assertEqual(background(days[0]), "rgb(201, 179, 234)", "Sunday");
+      assertEqual(background(days[6]), "rgb(201, 179, 234)", "Saturday");
+      assert(background(days[3]) !== background(days[5]), "Wednesday shouldn't be purple");
+    });
+
     test("page: posting an empty form shows helpful errors", function () {
       find("#post-form").requestSubmit();
       // Date is filled in for you, so name, location, and time are missing

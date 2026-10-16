@@ -57,6 +57,9 @@ function renderWeek() {
     const dateString = toDateString(day);
     const column = makeElement("div", "day");
     if (dateString === today) column.classList.add("today");
+    // Fridays and weekends get their own colors (see style.css)
+    if (day.getDay() === 5) column.classList.add("friday");
+    if (day.getDay() === 0 || day.getDay() === 6) column.classList.add("weekend");
 
     const heading = makeElement("h3", "day-heading");
     heading.append(
