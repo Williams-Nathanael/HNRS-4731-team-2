@@ -45,12 +45,13 @@ function addDays(date, days) {
   return result;
 }
 
-// The Sunday that starts the week containing `date`
+// The Monday that starts the week containing `date`.
+// getDay() counts Sunday as 0, so (getDay() + 6) % 7 is how many days since Monday.
 function startOfWeek(date) {
-  return addDays(date, -date.getDay());
+  return addDays(date, -((date.getDay() + 6) % 7));
 }
 
-// The 7 days (Sunday to Saturday) of the week starting at `weekStart`
+// The 7 days (Monday to Sunday) of the week starting at `weekStart`
 function getWeekDays(weekStart) {
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -93,7 +94,7 @@ function formatShortDate(dateString) {
   });
 }
 
-// Sunday Oct 11 -> "Oct 11 – Oct 17, 2026"
+// Monday Oct 12 -> "Oct 12 – Oct 18, 2026"
 function formatWeekRange(weekStart) {
   const weekEnd = addDays(weekStart, 6);
   const options = { month: "short", day: "numeric" };

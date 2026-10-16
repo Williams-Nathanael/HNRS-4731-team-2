@@ -16,7 +16,7 @@ function getStorage() {
 const storage = getStorage();
 const sampleEvents = getSampleEvents(new Date());
 let savedEvents = loadSavedEvents(storage);   // events posted in this browser
-let shownWeekStart = startOfWeek(new Date()); // the Sunday of the week on screen
+let shownWeekStart = startOfWeek(new Date()); // the Monday of the week on screen
 let eventInDialog = null;
 
 function allEvents() {

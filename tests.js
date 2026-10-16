@@ -54,23 +54,25 @@ function runFunctionTests() {
     assertEqual(toDateString(parseDateString("2026-01-05")), "2026-01-05");
   });
 
-  test("a week starts on Sunday", function () {
-    // Friday Oct 16, 2026 is in the week starting Sunday Oct 11
-    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 16))), "2026-10-11");
-    // A Sunday is its own week start
-    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 11))), "2026-10-11");
+  test("a week starts on Monday", function () {
+    // Friday Oct 16, 2026 is in the week starting Monday Oct 12
+    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 16))), "2026-10-12");
+    // A Monday is its own week start
+    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 12))), "2026-10-12");
+    // Sunday is the END of a week, so Sunday Oct 18 belongs to the week of Oct 12
+    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 18))), "2026-10-12");
   });
 
   test("week start works across month and year boundaries", function () {
-    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 1))), "2026-09-27");
-    assertEqual(toDateString(startOfWeek(new Date(2027, 0, 1))), "2026-12-27");
+    assertEqual(toDateString(startOfWeek(new Date(2026, 9, 1))), "2026-09-28");
+    assertEqual(toDateString(startOfWeek(new Date(2027, 0, 1))), "2026-12-28");
   });
 
-  test("a week has 7 days, Sunday to Saturday", function () {
-    const days = getWeekDays(new Date(2026, 9, 11)).map(toDateString);
+  test("a week has 7 days, Monday to Sunday", function () {
+    const days = getWeekDays(new Date(2026, 9, 12)).map(toDateString);
     assertEqual(days.length, 7);
-    assertEqual(days[0], "2026-10-11");
-    assertEqual(days[6], "2026-10-17");
+    assertEqual(days[0], "2026-10-12");
+    assertEqual(days[6], "2026-10-18");
   });
 
   test("times are shown in 12-hour format", function () {
@@ -80,8 +82,8 @@ function runFunctionTests() {
     assertEqual(formatTime("19:30"), "7:30 PM");
   });
 
-  test("week label reads like 'Oct 11 – Oct 17, 2026'", function () {
-    assertEqual(formatWeekRange(new Date(2026, 9, 11)), "Oct 11 – Oct 17, 2026");
+  test("week label reads like 'Oct 12 – Oct 18, 2026'", function () {
+    assertEqual(formatWeekRange(new Date(2026, 9, 12)), "Oct 12 – Oct 18, 2026");
   });
 
   test("events on a day come back earliest first", function () {
@@ -215,12 +217,14 @@ function runPageTests(done) {
     });
 
     test("page: Friday is pale purple, Saturday and Sunday are medium purple", function () {
-      const days = findAll("#week-grid .day"); // Sunday first
+      const days = findAll("#week-grid .day"); // Monday first, Sunday last
       const background = function (el) { return win.getComputedStyle(el).backgroundColor; };
-      assertEqual(background(days[5]), "rgb(241, 234, 251)", "Friday");
-      assertEqual(background(days[0]), "rgb(201, 179, 234)", "Sunday");
-      assertEqual(background(days[6]), "rgb(201, 179, 234)", "Saturday");
-      assert(background(days[3]) !== background(days[5]), "Wednesday shouldn't be purple");
+      assert(days[0].textContent.startsWith("Mon"), "week should start on Monday");
+      assert(days[6].textContent.startsWith("Sun"), "week should end on Sunday");
+      assertEqual(background(days[4]), "rgb(241, 234, 251)", "Friday");
+      assertEqual(background(days[5]), "rgb(201, 179, 234)", "Saturday");
+      assertEqual(background(days[6]), "rgb(201, 179, 234)", "Sunday");
+      assert(background(days[2]) !== background(days[4]), "Wednesday shouldn't be purple");
     });
 
     test("page: posting an empty form shows helpful errors", function () {
@@ -245,7 +249,7 @@ function runPageTests(done) {
         return el.textContent.includes("Test Event Zebra");
       });
       assert(card.classList.contains("tone-formal"), "card isn't colored as formal");
-      assertEqual(win.getComputedStyle(card).borderLeftColor, "rgb(154, 114, 0)", "formal stripe color");
+      assertEqual(win.getComputedStyle(card).borderLeftColor, "rgb(242, 183, 5)", "formal stripe color");
       assert(find("#post-form [name=tone][value=standard]").checked, "tone didn't reset to standard");
       assert(find("#week-label").textContent !== thisWeekLabel, "calendar didn't jump to next week");
       assert(find("#post-message").textContent.includes("Posted"), "no success message");
