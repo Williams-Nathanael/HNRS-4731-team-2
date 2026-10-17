@@ -335,3 +335,46 @@ function saveEvents(storage, events) {
     return false;
   }
 }
+
+// ---------- The squirrel button (a joke) ----------
+// Clicking the squirrel "schedules a date" with a random user at 5, 6, or 7 PM
+// sometime in the next 5 days. The day and time decide where to meet and what
+// color to wear. Nothing is saved, and no real person is involved.
+
+// One row for every day (1 = tomorrow ... 5 = five days from now) and time
+const SQUIRREL_DATE_PLAN = [
+  { day: 1, hour: 17, place: "the Front Lawn, by the big oak tree", color: "red" },
+  { day: 1, hour: 18, place: "the Student Center Coffee House", color: "orange" },
+  { day: 1, hour: 19, place: "the Library, 2nd floor", color: "yellow" },
+  { day: 2, hour: 17, place: "the Bell Tower", color: "green" },
+  { day: 2, hour: 18, place: "the Rec Center lobby", color: "blue" },
+  { day: 2, hour: 19, place: "the Soccer Field bleachers", color: "purple" },
+  { day: 3, hour: 17, place: "the Student Center Lobby", color: "pink" },
+  { day: 3, hour: 18, place: "the Honors House porch", color: "black" },
+  { day: 3, hour: 19, place: "the Science Building steps", color: "white" },
+  { day: 4, hour: 17, place: "the Career Center, Room 104", color: "gray" },
+  { day: 4, hour: 18, place: "the Cafeteria", color: "brown" },
+  { day: 4, hour: 19, place: "the Dorm Lounge, Building C", color: "teal" },
+  { day: 5, hour: 17, place: "the Front Lawn, by the flagpole", color: "maroon" },
+  { day: 5, hour: 18, place: "the Cafeteria, by the dessert bar", color: "navy" },
+  { day: 5, hour: 19, place: "the Bell Tower (bring a flashlight)", color: "gold" }
+];
+
+// Picks a random squirrel date. `random` is Math.random, or a fake in the tests.
+// Returns { userNumber, date, time, place, color }, e.g.
+//   { userNumber: 48213, date: "2026-10-20", time: "18:00", place: "the Cafeteria", color: "brown" }
+function pickSquirrelDate(today, random) {
+  const userNumber = 10000 + Math.floor(random() * 90000); // always 5 digits
+  const day = 1 + Math.floor(random() * 5);               // 1 to 5 days from today
+  const hour = 17 + Math.floor(random() * 3);             // 5, 6, or 7 PM
+  const plan = SQUIRREL_DATE_PLAN.find(function (row) {
+    return row.day === day && row.hour === hour;
+  });
+  return {
+    userNumber: userNumber,
+    date: toDateString(addDays(today, day)),
+    time: pad(hour) + ":00",
+    place: plan.place,
+    color: plan.color
+  };
+}

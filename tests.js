@@ -203,6 +203,34 @@ function runFunctionTests() {
     assertEqual(loadSavedEvents(storage), [late]);
   });
 
+  test("squirrel dates: one plan for every day and time", function () {
+    assertEqual(SQUIRREL_DATE_PLAN.length, 15);
+    [1, 2, 3, 4, 5].forEach(function (day) {
+      [17, 18, 19].forEach(function (hour) {
+        const matches = SQUIRREL_DATE_PLAN.filter(function (row) { return row.day === day && row.hour === hour; });
+        assertEqual(matches.length, 1, "day " + day + " at " + hour);
+      });
+    });
+  });
+
+  test("squirrel dates: 6 PM in 4 days means the Cafeteria", function () {
+    // A fake random() that returns these numbers in order: user number, day, hour
+    const numbers = [0, 3 / 5, 1 / 3];
+    const fakeRandom = function () { return numbers.shift(); };
+    const date = pickSquirrelDate(new Date(2026, 9, 16), fakeRandom);
+    assertEqual(date, { userNumber: 10000, date: "2026-10-20", time: "18:00", place: "the Cafeteria", color: "brown" });
+  });
+
+  test("squirrel dates: 5-digit user, 5–7 PM, within the next 5 days", function () {
+    const today = new Date(2026, 9, 16);
+    for (let i = 0; i < 200; i++) {
+      const date = pickSquirrelDate(today, Math.random);
+      assert(date.userNumber >= 10000 && date.userNumber <= 99999, "user number " + date.userNumber);
+      assert(["17:00", "18:00", "19:00"].includes(date.time), "time " + date.time);
+      assert(date.date >= "2026-10-17" && date.date <= "2026-10-21", "date " + date.date);
+    }
+  });
+
   test("events without a tone get the standard tone", function () {
     const result = validateEvent({ name: "X", location: "Y", date: "2026-10-20", time: "10:00" });
     assertEqual(result.event.tone, "standard");
@@ -555,6 +583,33 @@ function runPageTests(done) {
       assertEqual(findAll("#post-errors li").length, 0, "errors shown");
       assert(find("#week-grid").textContent.includes("8:00 PM – 9:15 PM"), "end time not on the week card");
       assertEqual(find("#post-form [name=endTime]").value, "", "end time not cleared");
+    });
+
+    test("page: the squirrel button sits in the bottom-left corner", function () {
+      const button = find("#squirrel-button");
+      const box = button.getBoundingClientRect();
+      assertEqual(win.getComputedStyle(button).position, "fixed");
+      assert(box.left <= 20, "not on the left");
+      assert(win.innerHeight - box.bottom <= 20, "not at the bottom");
+    });
+
+    test("page: clicking the squirrel schedules a date you can only accept", function () {
+      find("#squirrel-button").click();
+      const dialog = find("#squirrel-dialog");
+      assert(dialog.open, "date pop-up didn't open");
+      assert(/^\d{5}$/.test(find("#squirrel-user").textContent), "user number should be 5 digits");
+      assert(/at [567]:00 PM$/.test(find("#squirrel-when").textContent), "time should be 5, 6, or 7 PM");
+      assert(find("#squirrel-place").textContent.length > 0, "no place");
+      assert(find("#squirrel-color").textContent.length > 0, "no color");
+      assertEqual(dialog.querySelectorAll("button").length, 1, "Accept should be the only button");
+
+      // Pressing Escape sends a "cancel" event; it should be blocked
+      const escape = new win.Event("cancel", { cancelable: true });
+      dialog.dispatchEvent(escape);
+      assert(escape.defaultPrevented, "Escape shouldn't close it");
+
+      find("#squirrel-accept").click();
+      assert(!dialog.open, "Accept didn't close it");
     });
 
     test("page: event names can't inject HTML", function () {

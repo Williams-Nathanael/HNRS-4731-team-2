@@ -419,6 +419,29 @@ searchForm.addEventListener("reset", function () {
   setTimeout(runSearch, 0);
 });
 
+// ---------- The squirrel button (a joke) ----------
+
+const squirrelDialog = document.getElementById("squirrel-dialog");
+
+document.getElementById("squirrel-button").addEventListener("click", function () {
+  const date = pickSquirrelDate(new Date(), Math.random);
+  document.getElementById("squirrel-user").textContent = date.userNumber;
+  document.getElementById("squirrel-when").textContent =
+    formatLongDate(date.date) + " at " + formatTime(date.time);
+  document.getElementById("squirrel-place").textContent = date.place;
+  document.getElementById("squirrel-color").textContent = date.color;
+  squirrelDialog.showModal();
+});
+
+// "Accept" is the only way out: block the Escape key from closing it
+squirrelDialog.addEventListener("cancel", function (cancelEvent) {
+  cancelEvent.preventDefault();
+});
+
+document.getElementById("squirrel-accept").addEventListener("click", function () {
+  squirrelDialog.close();
+});
+
 // ---------- Start the app ----------
 
 postDate.value = toDateString(new Date());

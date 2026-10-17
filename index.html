@@ -145,6 +145,22 @@
     </div>
   </dialog>
 
+  <!-- The squirrel button (a joke): see "squirrel" in events.js and app.js -->
+  <button type="button" id="squirrel-button" class="squirrel-button"
+          title="Squirrel Dating Service" aria-label="Squirrel Dating Service (a joke)">🐿️</button>
+
+  <dialog id="squirrel-dialog" class="squirrel-dialog">
+    <p class="squirrel-icon" aria-hidden="true">🐿️</p>
+    <h2>Squirrel Dating Service</h2>
+    <p>Congratulations! You now have a date with <strong>user #<span id="squirrel-user"></span></strong>.</p>
+    <p><strong>When:</strong> <span id="squirrel-when"></span></p>
+    <p><strong>Where:</strong> <span id="squirrel-place"></span></p>
+    <p><strong>Wear:</strong> something <span id="squirrel-color"></span>, so they can find you.</p>
+    <div class="dialog-buttons">
+      <button type="button" id="squirrel-accept" class="primary">Accept</button>
+    </div>
+  </dialog>
+
   <!-- Order matters: app.js uses functions from the first two files -->
   <script src="events.js"></script>
   <script src="sample-data.js"></script>

@@ -37,6 +37,7 @@ body {
   color: var(--black);
   background: var(--gray-bg);
   line-height: 1.4;
+  padding-bottom: 80px; /* room to scroll past the squirrel button */
 }
 
 h1, h2, h3 {
@@ -625,6 +626,55 @@ dialog h2 {
 
 .dialog-buttons form {
   margin: 0;
+}
+
+/* ---------- Squirrel button (a joke) ---------- */
+
+.squirrel-button {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 5;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  background: var(--white);
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.squirrel-button:hover {
+  border-color: var(--gold);
+  animation: squirrel-wiggle 0.4s ease-in-out;
+}
+
+@keyframes squirrel-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+
+/* Skip the wiggle for people who've asked their device for less motion */
+@media (prefers-reduced-motion: reduce) {
+  .squirrel-button:hover {
+    animation: none;
+  }
+}
+
+.squirrel-dialog {
+  text-align: center;
+}
+
+.squirrel-dialog .dialog-buttons {
+  justify-content: center;
+}
+
+.squirrel-icon {
+  margin: 0;
+  font-size: 3rem;
 }
 
 /* ---------- Smaller screens ---------- */
