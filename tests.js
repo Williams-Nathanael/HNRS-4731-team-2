@@ -132,6 +132,77 @@ function runFunctionTests() {
     assertEqual(result.errors.length, 1);
   });
 
+  test("events must start between 7:00 AM and 10:00 PM", function () {
+    const base = { name: "X", location: "Y", date: "2026-10-20" };
+    const startError = ["Events must start between 7:00 AM and 10:00 PM."];
+    assertEqual(validateEvent(Object.assign({ time: "06:59" }, base)).errors, startError, "6:59 AM");
+    assertEqual(validateEvent(Object.assign({ time: "22:00" }, base)).errors, startError, "10:00 PM");
+    assertEqual(validateEvent(Object.assign({ time: "07:00" }, base)).errors, [], "7:00 AM");
+    assertEqual(validateEvent(Object.assign({ time: "21:59" }, base)).errors, [], "9:59 PM");
+  });
+
+  test("the end time is optional, but must be after the start and by 10 PM", function () {
+    const base = { name: "X", location: "Y", date: "2026-10-20", time: "18:00" };
+    const check = function (endTime) {
+      return validateEvent(Object.assign({ endTime: endTime }, base)).errors;
+    };
+    assertEqual(check(""), [], "no end time");
+    assertEqual(check("20:30"), [], "8:30 PM");
+    assertEqual(check("22:00"), [], "10:00 PM exactly");
+    assertEqual(check("18:00"), ["The end time must be after the start time."], "same as start");
+    assertEqual(check("17:00"), ["The end time must be after the start time."], "before start");
+    assertEqual(check("22:30"), ["Events must end by 10:00 PM."], "too late");
+    assertEqual(check("99:99"), ["That end time doesn't look right."], "nonsense");
+  });
+
+  test("time ranges read like '6:30 PM – 8:00 PM'", function () {
+    assertEqual(formatTimeRange({ time: "18:30", endTime: "20:00" }), "6:30 PM – 8:00 PM");
+    assertEqual(formatTimeRange({ time: "18:30", endTime: "" }), "6:30 PM");
+    assertEqual(formatHourLabel(7), "7 AM");
+    assertEqual(formatHourLabel(12), "12 PM");
+    assertEqual(formatHourLabel(21), "9 PM");
+  });
+
+  test("long words in names get abbreviated", function () {
+    assertEqual(abbreviateName("Lunch & Learn: Budgeting Basics", 6), "Lunch & Learn: Budge. Basics");
+    assertEqual(abbreviateName("Club Fair", 6), "Club Fair", "short names stay the same");
+    assertEqual(abbreviateName("Résumé Review Drop-In", 4), "Rés. Rev. Dro.");
+  });
+
+  test("events cover the hour rows they overlap", function () {
+    assertEqual(getHourSpan({ time: "18:30", endTime: "20:00" }), { startHour: 18, endHour: 20 });
+    assertEqual(getHourSpan({ time: "18:30", endTime: "20:15" }), { startHour: 18, endHour: 21 });
+    assertEqual(getHourSpan({ time: "07:30", endTime: "" }), { startHour: 7, endHour: 8 }, "no end time");
+    assertEqual(getHourSpan({ time: "12:00", endTime: "12:15" }), { startHour: 12, endHour: 13 }, "short event");
+  });
+
+  test("events that share an hour are placed side by side", function () {
+    const at = function (name, time, endTime) {
+      return { id: name, name: name, location: "L", date: "2026-10-12", time: time, endTime: endTime };
+    };
+    const layout = function (events) {
+      return layoutDayEvents(events).map(function (box) {
+        return [box.event.name, box.column, box.columns];
+      });
+    };
+    // Different hours: each gets the full width
+    assertEqual(layout([at("A", "09:00", ""), at("B", "11:00", "")]), [["A", 0, 1], ["B", 0, 1]]);
+    // Same hour: split in two
+    assertEqual(layout([at("A", "12:00", "14:00"), at("B", "12:30", "13:30")]), [["A", 0, 2], ["B", 1, 2]]);
+    // A (9–11) overlaps B (10–12), and C (11–12) can reuse A's column once A ends
+    assertEqual(layout([at("A", "09:00", "11:00"), at("B", "10:00", "12:00"), at("C", "11:00", "")]),
+      [["A", 0, 2], ["B", 1, 2], ["C", 0, 2]]);
+    // An old saved event outside 7 AM – 10 PM is left out
+    assertEqual(layout([at("Late", "23:00", "")]), []);
+  });
+
+  test("old saved events outside 7 AM – 10 PM still load", function () {
+    const storage = makeFakeStorage();
+    const late = { id: "x", name: "Late", location: "L", date: "2026-10-12", time: "23:00" };
+    storage.setItem(STORAGE_KEY, JSON.stringify([late]));
+    assertEqual(loadSavedEvents(storage), [late]);
+  });
+
   test("events without a tone get the standard tone", function () {
     const result = validateEvent({ name: "X", location: "Y", date: "2026-10-20", time: "10:00" });
     assertEqual(result.event.tone, "standard");
@@ -397,6 +468,93 @@ function runPageTests(done) {
       assert(!find("#week-grid").hidden, "week view not showing");
       assert(find("#month-view").hidden, "month view still showing");
       assertEqual(find("#period-label").textContent, thisWeekLabel);
+    });
+
+    test("page: the Hourly button shows hour rows from 7 AM to 9 PM", function () {
+      find("#hourly-view-button").click();
+      assert(!find("#hourly-view").hidden, "hourly view not showing");
+      assert(find("#week-grid").hidden && find("#month-view").hidden, "other views still showing");
+      assertEqual(find("#period-label").textContent, thisWeekLabel);
+      const labels = Array.from(findAll("#hourly-grid .hour-label")).map(function (el) { return el.textContent; });
+      assertEqual(labels.length, 15);
+      assertEqual(labels[0], "7 AM");
+      assertEqual(labels[14], "9 PM");
+      assertEqual(findAll("#hourly-grid .hour-day").length, 7);
+    });
+
+    // Finds an event's box in the hourly view by its full name (the label
+    // screen readers use, since the name on screen may be abbreviated)
+    const hourBlock = function (name) {
+      return Array.from(findAll("#hourly-grid .hour-event")).find(function (el) {
+        return el.getAttribute("aria-label").startsWith(name + ",");
+      });
+    };
+
+    test("page: hourly boxes show only the name and stretch over their hours", function () {
+      // Club Fair is a sample event, Thursday 4:00–6:00 PM
+      const box = hourBlock("Club Fair");
+      assert(box, "Club Fair not found");
+      assertEqual(box.textContent, "Club Fair", "box should show just the name");
+      assertEqual(box.style.getPropertyValue("--start"), String(16 - 7), "starts in the 4 PM row");
+      assertEqual(box.style.getPropertyValue("--hours-long"), "2", "covers 2 hours");
+      const columns = findAll("#hourly-grid .hour-day");
+      assert(columns[3].contains(box), "should be in Thursday's column");
+      assertEqual(Math.round(box.getBoundingClientRect().height), 2 * 52 - 2, "height of 2 hours");
+    });
+
+    test("page: events in the same hour split the space", function () {
+      // Sample events on Monday: Résumé Review 12–2 PM and Lunch & Learn 12:30–1:30 PM
+      const resume = hourBlock("Résumé Review Drop-In");
+      const lunch = hourBlock("Lunch & Learn: Budgeting Basics");
+      const dayWidth = findAll("#hourly-grid .hour-day")[0].getBoundingClientRect().width;
+      const resumeBox = resume.getBoundingClientRect();
+      const lunchBox = lunch.getBoundingClientRect();
+      assert(Math.abs(resumeBox.width - dayWidth / 2) < 4, "should be half the day's width");
+      assert(lunchBox.left >= resumeBox.right - 1, "should sit beside, not on top of, each other");
+      assert(lunch.textContent.includes("."), "long words in the narrow box should be abbreviated");
+      const nameLine = lunch.querySelector(".hour-event-name");
+      assert(nameLine.scrollWidth <= nameLine.clientWidth + 1, "abbreviated name still too wide for its box");
+    });
+
+    test("page: hovering an event shows a preview over the Post section", function () {
+      const box = hourBlock("Club Fair");
+      const preview = find("#hover-preview");
+      assert(preview.hidden, "preview showing before hover");
+      box.dispatchEvent(new win.MouseEvent("mouseenter"));
+      assert(!preview.hidden, "preview didn't appear");
+      assertEqual(find("#preview-name").textContent, "Club Fair");
+      assert(find("#preview-when").textContent.includes("4:00 PM – 6:00 PM"), "time missing");
+      assertEqual(find("#preview-location").textContent, "Student Center Lobby");
+      const panel = find(".post-panel").getBoundingClientRect();
+      const shown = preview.getBoundingClientRect();
+      assert(Math.abs(shown.top - panel.top) < 2 && Math.abs(shown.height - panel.height) < 3,
+        "preview should cover the Post section");
+      box.dispatchEvent(new win.MouseEvent("mouseleave"));
+      assert(preview.hidden, "preview didn't go away");
+    });
+
+    test("page: clicking an hourly event opens its details", function () {
+      hourBlock("Club Fair").click();
+      assert(find("#event-dialog").open, "details didn't open");
+      assertEqual(find("#dialog-name").textContent, "Club Fair");
+      find("#event-dialog").close();
+      find("#week-view-button").click();
+    });
+
+    test("page: posting with an end time shows it; posting too late is blocked", function () {
+      type("#post-form [name=name]", "Test Late Event");
+      type("#post-form [name=location]", "Test Hall");
+      type("#post-form [name=date]", toDateString(new Date()));
+      type("#post-form [name=time]", "22:30");
+      find("#post-form").requestSubmit();
+      assertEqual(find("#post-errors").textContent, "Events must start between 7:00 AM and 10:00 PM.");
+
+      type("#post-form [name=time]", "20:00");
+      type("#post-form [name=endTime]", "21:15");
+      find("#post-form").requestSubmit();
+      assertEqual(findAll("#post-errors li").length, 0, "errors shown");
+      assert(find("#week-grid").textContent.includes("8:00 PM – 9:15 PM"), "end time not on the week card");
+      assertEqual(find("#post-form [name=endTime]").value, "", "end time not cleared");
     });
 
     test("page: event names can't inject HTML", function () {

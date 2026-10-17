@@ -21,6 +21,7 @@
           <!-- Switch between the week and month calendars -->
           <div class="view-switch" role="group" aria-label="Calendar view">
             <button type="button" id="week-view-button" aria-pressed="true">Week</button>
+            <button type="button" id="hourly-view-button" aria-pressed="false">Hourly</button>
             <button type="button" id="month-view-button" aria-pressed="false">Month</button>
           </div>
           <button type="button" id="prev-period">← Previous</button>
@@ -29,6 +30,10 @@
         </div>
       </div>
       <div id="week-grid" class="week-grid"></div>
+      <!-- Hourly week: scrolls sideways on small screens -->
+      <div id="hourly-view" class="hourly-view" hidden>
+        <div id="hourly-grid" class="hourly-grid"></div>
+      </div>
       <div id="month-view" class="month-view" hidden>
         <div class="month-weekdays" aria-hidden="true">
           <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
@@ -40,7 +45,7 @@
 
     <div class="sidebar">
       <!-- Post a new event -->
-      <section class="panel" aria-labelledby="post-heading">
+      <section class="panel post-panel" aria-labelledby="post-heading">
         <h2 id="post-heading">Post an event</h2>
         <form id="post-form" novalidate>
           <label>Event name
@@ -49,14 +54,18 @@
           <label>Location
             <input name="location" maxlength="100" placeholder="e.g. Student Center">
           </label>
+          <label>Date
+            <input type="date" name="date" id="post-date">
+          </label>
           <div class="row">
-            <label>Date
-              <input type="date" name="date" id="post-date">
-            </label>
             <label>Start time
-              <input type="time" name="time">
+              <input type="time" name="time" min="07:00" max="22:00">
+            </label>
+            <label>End time <span class="optional">(optional)</span>
+              <input type="time" name="endTime" min="07:00" max="22:00">
             </label>
           </div>
+          <p class="hint">Events can run between 7:00 AM and 10:00 PM.</p>
           <label>Description <span class="optional">(optional)</span>
             <textarea name="description" rows="3" maxlength="500"></textarea>
           </label>
@@ -78,6 +87,17 @@
           <p id="post-message" class="success" role="status"></p>
         </form>
         <p class="note">Events you post are saved in this browser only, so other people won't see them yet.</p>
+
+        <!-- Covers this section while you hover over an event in the hourly view -->
+        <div id="hover-preview" class="hover-preview" hidden>
+          <p id="preview-sample" class="badge">Sample event</p>
+          <h2 id="preview-name"></h2>
+          <p><strong>When:</strong> <span id="preview-when"></span></p>
+          <p><strong>Where:</strong> <span id="preview-location"></span></p>
+          <p><strong>Style:</strong> <span id="preview-tone"></span></p>
+          <p id="preview-description"></p>
+          <p class="note">Click the event for more options.</p>
+        </div>
       </section>
 
       <!-- Search -->

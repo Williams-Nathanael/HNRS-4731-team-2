@@ -178,13 +178,14 @@ button.danger {
   gap: 6px;
 }
 
-/* These day colors apply to both the week view (.day) and month view (.month-day) */
-.day.friday, .month-day.friday {
+/* These day colors apply to the week (.day), hourly (.hour-day, .hour-day-heading),
+   and month (.month-day) views */
+.day.friday, .month-day.friday, .hour-day.friday, .hour-day-heading.friday {
   background: var(--friday-bg);
   border-color: var(--friday-line);
 }
 
-.day.weekend, .month-day.weekend {
+.day.weekend, .month-day.weekend, .hour-day.weekend, .hour-day-heading.weekend {
   background: var(--weekend-bg);
   border-color: var(--weekend-line);
 }
@@ -196,7 +197,7 @@ button.danger {
 
 /* Today keeps its day's color (purple on Fridays and weekends) and gets a
    thick gold border, so it stands out on any day */
-.day.today, .month-day.today {
+.day.today, .month-day.today, .hour-day-heading.today {
   border: 3px solid var(--gold);
 }
 
@@ -205,7 +206,9 @@ button.danger {
 }
 
 .day.today:not(.friday):not(.weekend),
-.month-day.today:not(.friday):not(.weekend) {
+.month-day.today:not(.friday):not(.weekend),
+.hour-day.today:not(.friday):not(.weekend),
+.hour-day-heading.today:not(.friday):not(.weekend) {
   background: var(--gold-light);
 }
 
@@ -270,6 +273,124 @@ button.danger {
 .event-location {
   font-size: 0.8rem;
   color: var(--gray-text);
+}
+
+/* ---------- Hourly calendar ---------- */
+
+/* Scrolls sideways on narrow screens instead of squashing the days */
+.hourly-view {
+  overflow-x: auto;
+}
+
+.hourly-grid {
+  --hour-height: 52px; /* how tall each hour row is */
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 640px;
+}
+
+.hour-day-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--gray-line);
+  border-radius: var(--radius);
+  background: var(--gray-bg);
+}
+
+.hour-day-heading.today {
+  padding: 2px 4px; /* 2px less, to make up for the thicker border */
+}
+
+.hour-label {
+  height: var(--hour-height);
+  padding-right: 6px;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--gray-text);
+}
+
+/* A day's column: one tall box with a faint line between hours.
+   --hours (set in app.js) is how many hour rows there are. */
+.hour-day {
+  position: relative;
+  height: calc(var(--hours) * var(--hour-height));
+  border-radius: var(--radius);
+  background-color: var(--gray-bg);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--hour-height) - 1px),
+    var(--gray-line) calc(var(--hour-height) - 1px),
+    var(--gray-line) var(--hour-height)
+  );
+}
+
+.hour-day.today {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+/* An event box. app.js sets, for each one:
+     --start      hours after 7 AM that it starts
+     --hours-long how many hour rows it covers
+     --column     which column it's in when events share an hour (0 = first)
+     --columns    how many columns that hour is split into */
+.hour-event {
+  position: absolute;
+  top: calc(var(--start) * var(--hour-height) + 1px);
+  height: calc(var(--hours-long) * var(--hour-height) - 2px);
+  left: calc(var(--column) * 100% / var(--columns) + 1px);
+  width: calc(100% / var(--columns) - 2px);
+  display: flex;
+  align-items: flex-start;
+  padding: 2px 4px;
+  border-left: 4px solid var(--tone-color, var(--tone-standard));
+  border-radius: 4px;
+  overflow: hidden;
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.hour-event:hover, .hour-event:focus-visible {
+  z-index: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Long names get shortened in app.js, then cut off with "…" once they run
+   out of room (app.js sets how many lines fit) */
+.hour-event-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere; /* last resort, if a word still doesn't fit */
+}
+
+/* ---------- Hover preview (hourly view) ---------- */
+
+.post-panel {
+  position: relative;
+}
+
+/* Sits exactly on top of the "Post an event" section */
+.hover-preview {
+  position: absolute;
+  inset: -1px;
+  z-index: 10;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--gray-line);
+  border-top: 5px solid var(--tone-color, var(--gold));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.hover-preview h2 {
+  margin: 8px 0;
 }
 
 /* ---------- Month calendar ---------- */
@@ -404,6 +525,12 @@ form input, form select, form textarea {
   color: var(--gray-text);
 }
 
+.hint {
+  margin: -4px 0 10px;
+  font-size: 0.8rem;
+  color: var(--gray-text);
+}
+
 .errors {
   color: var(--red);
   margin: 0 0 10px;
@@ -505,7 +632,16 @@ dialog h2 {
 /* Tablets: put the forms under the calendar */
 @media (max-width: 1000px) {
   .layout {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...) stops wide content (like the hourly grid) from stretching the page */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The Post section is below the calendar now, so show the preview
+     at the bottom of the screen instead */
+  .hover-preview {
+    position: fixed;
+    inset: auto 16px 16px 16px;
+    max-height: 50vh;
   }
 }
 

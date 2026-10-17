@@ -2,8 +2,11 @@
 
 A simple web page for keeping track of events around campus. Students can:
 
-- **Post an event** with a name, location, date, start time, an optional description, and a style (casual, standard, or formal) that sets its color
-- **See events on a calendar**: a week view with full details, or a month view showing each event's time and name. Previous / Next move a week or a month at a time.
+- **Post an event** with a name, location, date, start time, an optional end time, an optional description, and a style (casual, standard, or formal) that sets its color. Events must be between 7:00 AM and 10:00 PM.
+- **See events on a calendar** in three views:
+  - **Week**: each day's events with full details
+  - **Hourly**: the week with a row for each hour from 7 AM to 10 PM. Boxes show just the name (shortened if needed) and stretch over the event's hours, and events at the same time sit side by side. Hover over one to see its details where the Post section is.
+  - **Month**: each event's time and name
 - **Search events** by keyword, date range, or time of day
 
 All the events that come with the app are **fictional sample data**.
@@ -29,7 +32,7 @@ then go to http://localhost:8000 in your browser. Press `Ctrl+C` in the terminal
 ## Run the tests
 
 With the local server running, open http://localhost:8000/tests.html. You should see
-"All 43 tests passed ✓". If you open `tests.html` by double-clicking instead, only the
+"All 56 tests passed ✓". If you open `tests.html` by double-clicking instead, only the
 logic tests run, because browsers block the tests that click through the page.
 
 ## Put it online with GitHub Pages (free)

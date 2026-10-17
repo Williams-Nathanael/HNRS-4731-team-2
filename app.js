@@ -1,6 +1,6 @@
 // app.js
 // Connects the web page (index.html) to the functions in events.js:
-// draws the week or month calendar, handles the "Post an event" form, and runs searches.
+// draws the week, hourly, or month calendar, handles the "Post an event" form, and runs searches.
 
 // ---------- App data ----------
 
@@ -16,7 +16,7 @@ function getStorage() {
 const storage = getStorage();
 const sampleEvents = getSampleEvents(new Date());
 let savedEvents = loadSavedEvents(storage);   // events posted in this browser
-let calendarView = "week"; // "week" or "month"
+let calendarView = "week"; // "week", "hourly", or "month"
 let shownDate = new Date(); // the calendar shows the week or month containing this day
 let eventInDialog = null;
 
@@ -28,10 +28,14 @@ function allEvents() {
 
 const periodLabel = document.getElementById("period-label");
 const weekGrid = document.getElementById("week-grid");
+const hourlyView = document.getElementById("hourly-view");
+const hourlyGrid = document.getElementById("hourly-grid");
 const monthView = document.getElementById("month-view");
 const monthGrid = document.getElementById("month-grid");
 const weekViewButton = document.getElementById("week-view-button");
+const hourlyViewButton = document.getElementById("hourly-view-button");
 const monthViewButton = document.getElementById("month-view-button");
+const hoverPreview = document.getElementById("hover-preview");
 const postForm = document.getElementById("post-form");
 const postDate = document.getElementById("post-date");
 const postErrors = document.getElementById("post-errors");
@@ -51,16 +55,20 @@ function makeElement(tag, className, text) {
   return element;
 }
 
-// ---------- The calendar (week or month) ----------
+// ---------- The calendar (week, hourly, or month) ----------
 
 // Draws whichever calendar view is chosen
 function renderCalendar() {
-  const showingMonth = calendarView === "month";
-  weekGrid.hidden = showingMonth;
-  monthView.hidden = !showingMonth;
-  weekViewButton.setAttribute("aria-pressed", String(!showingMonth));
-  monthViewButton.setAttribute("aria-pressed", String(showingMonth));
-  if (showingMonth) renderMonth();
+  weekGrid.hidden = calendarView !== "week";
+  hourlyView.hidden = calendarView !== "hourly";
+  monthView.hidden = calendarView !== "month";
+  weekViewButton.setAttribute("aria-pressed", String(calendarView === "week"));
+  hourlyViewButton.setAttribute("aria-pressed", String(calendarView === "hourly"));
+  monthViewButton.setAttribute("aria-pressed", String(calendarView === "month"));
+  hidePreview();
+
+  if (calendarView === "month") renderMonth();
+  else if (calendarView === "hourly") renderHourly();
   else renderWeek();
 }
 
@@ -99,6 +107,51 @@ function renderWeek() {
   });
 }
 
+// The week with a row for each hour, 7 AM to 10 PM
+function renderHourly() {
+  const weekStart = startOfWeek(shownDate);
+  const days = getWeekDays(weekStart);
+  periodLabel.textContent = formatWeekRange(weekStart);
+  hourlyGrid.replaceChildren();
+  hourlyGrid.style.setProperty("--hours", LAST_HOUR - FIRST_HOUR); // style.css uses this for the height
+
+  // Top row: an empty corner above the hour labels, then the 7 day names
+  hourlyGrid.append(makeElement("div", "hour-corner"));
+  days.forEach(function (day) {
+    const heading = makeElement("div", "hour-day-heading");
+    addDayColors(heading, day);
+    heading.append(
+      makeElement("span", "day-name", day.toLocaleDateString("en-US", { weekday: "short" })),
+      makeElement("span", "day-number", day.getDate())
+    );
+    hourlyGrid.append(heading);
+  });
+
+  // Left column: "7 AM", "8 AM", ... "9 PM"
+  const labels = makeElement("div", "hour-labels");
+  for (let hour = FIRST_HOUR; hour < LAST_HOUR; hour++) {
+    labels.append(makeElement("div", "hour-label", formatHourLabel(hour)));
+  }
+  hourlyGrid.append(labels);
+
+  // One tall column per day, with the events placed inside it
+  days.forEach(function (day) {
+    const column = makeElement("div", "hour-day");
+    addDayColors(column, day);
+    hourlyGrid.append(column);
+    // Now that the column is on the page we know how wide it is
+    const columnWidth = column.getBoundingClientRect().width;
+    layoutDayEvents(eventsOnDate(allEvents(), toDateString(day))).forEach(function (box) {
+      column.append(makeHourBlock(box, columnWidth));
+    });
+  });
+}
+
+// Box widths depend on the window size, so redraw if it changes
+window.addEventListener("resize", function () {
+  if (calendarView === "hourly") renderCalendar();
+});
+
 function renderMonth() {
   const monthStart = startOfMonth(shownDate);
   periodLabel.textContent = formatMonthLabel(monthStart);
@@ -133,7 +186,7 @@ function makeEventCard(event) {
   const card = makeElement("button", "event-card tone-" + (event.tone || DEFAULT_TONE));
   card.type = "button";
   card.append(
-    makeElement("span", "event-time", formatTime(event.time)),
+    makeElement("span", "event-time", formatTimeRange(event)),
     makeElement("span", "event-name", event.name),
     makeElement("span", "event-location", event.location)
   );
@@ -158,6 +211,39 @@ function makeCompactEvent(event) {
   return entry;
 }
 
+// Box for the hourly view, showing only the event's name. The numbers set
+// here tell style.css where to put it and how big to make it (see .hour-event).
+function makeHourBlock(box, columnWidth) {
+  const event = box.event;
+  const hours = box.endHour - box.startHour;
+  const block = makeElement("button", "hour-event tone-" + (event.tone || DEFAULT_TONE));
+  block.type = "button";
+  block.style.setProperty("--start", box.startHour - FIRST_HOUR);
+  block.style.setProperty("--hours-long", hours);
+  block.style.setProperty("--column", box.column);
+  block.style.setProperty("--columns", box.columns);
+  // Screen readers can't see the hover preview, so give them the time too
+  block.setAttribute("aria-label", event.name + ", " + formatTimeRange(event));
+
+  // Shorten words that are too long for the box. The text is at most about 8 pixels
+  // per letter, and the box loses about 10 pixels to its border and padding.
+  const lettersPerLine = Math.floor((columnWidth / box.columns - 10) / 8);
+  const name = makeElement("span", "hour-event-name", abbreviateName(event.name, Math.max(lettersPerLine, 3)));
+  // Then cut the name off with "…" after as many lines as fit: 3 per hour
+  name.style.setProperty("-webkit-line-clamp", String(hours * 3));
+  block.append(name);
+
+  block.addEventListener("mouseenter", function () { showPreview(event); });
+  block.addEventListener("focus", function () { showPreview(event); });
+  block.addEventListener("mouseleave", hidePreview);
+  block.addEventListener("blur", hidePreview);
+  block.addEventListener("click", function () {
+    hidePreview();
+    showDetails(event);
+  });
+  return block;
+}
+
 // Jumps the calendar to the week or month containing a date like "2026-10-16"
 function showDate(dateString) {
   shownDate = parseDateString(dateString);
@@ -169,12 +255,17 @@ weekViewButton.addEventListener("click", function () {
   renderCalendar();
 });
 
+hourlyViewButton.addEventListener("click", function () {
+  calendarView = "hourly";
+  renderCalendar();
+});
+
 monthViewButton.addEventListener("click", function () {
   calendarView = "month";
   renderCalendar();
 });
 
-// Previous / Next move by a week or a month, depending on the view
+// Previous / Next move by a month in month view, otherwise by a week
 document.getElementById("prev-period").addEventListener("click", function () {
   shownDate = calendarView === "month" ? addMonths(shownDate, -1) : addDays(shownDate, -7);
   renderCalendar();
@@ -190,21 +281,46 @@ document.getElementById("today-button").addEventListener("click", function () {
   renderCalendar();
 });
 
-// ---------- Event details pop-up ----------
+// ---------- Event details pop-up and hover preview ----------
+
+// "Friday, October 16, 2026, 6:30 PM – 8:00 PM"
+function describeWhen(event) {
+  return formatLongDate(event.date) + ", " + formatTimeRange(event);
+}
+
+// "formal" -> "Formal"
+function describeTone(event) {
+  const tone = event.tone || DEFAULT_TONE;
+  return tone.charAt(0).toUpperCase() + tone.slice(1);
+}
 
 function showDetails(event) {
   eventInDialog = event;
   document.getElementById("dialog-name").textContent = event.name;
-  document.getElementById("dialog-when").textContent =
-    formatLongDate(event.date) + " at " + formatTime(event.time);
+  document.getElementById("dialog-when").textContent = describeWhen(event);
   document.getElementById("dialog-location").textContent = event.location;
-  const tone = event.tone || DEFAULT_TONE;
-  document.getElementById("dialog-tone").textContent = tone.charAt(0).toUpperCase() + tone.slice(1);
-  dialog.className = "tone-" + tone; // colors the pop-up's top stripe
+  document.getElementById("dialog-tone").textContent = describeTone(event);
+  dialog.className = "tone-" + (event.tone || DEFAULT_TONE); // colors the pop-up's top stripe
   document.getElementById("dialog-description").textContent = event.description || "";
   document.getElementById("dialog-sample").hidden = !event.sample;
   deleteButton.hidden = Boolean(event.sample); // you can only delete events you posted
   dialog.showModal();
+}
+
+// The hover preview sits on top of the "Post an event" section (see style.css)
+function showPreview(event) {
+  document.getElementById("preview-name").textContent = event.name;
+  document.getElementById("preview-when").textContent = describeWhen(event);
+  document.getElementById("preview-location").textContent = event.location;
+  document.getElementById("preview-tone").textContent = describeTone(event);
+  document.getElementById("preview-description").textContent = event.description || "";
+  document.getElementById("preview-sample").hidden = !event.sample;
+  hoverPreview.className = "hover-preview tone-" + (event.tone || DEFAULT_TONE);
+  hoverPreview.hidden = false;
+}
+
+function hidePreview() {
+  hoverPreview.hidden = true;
 }
 
 deleteButton.addEventListener("click", function () {
@@ -278,7 +394,7 @@ function runSearch() {
     const button = makeElement("button", "result tone-" + (event.tone || DEFAULT_TONE));
     button.type = "button";
     button.append(
-      makeElement("span", "result-when", formatShortDate(event.date) + " · " + formatTime(event.time)),
+      makeElement("span", "result-when", formatShortDate(event.date) + " · " + formatTimeRange(event)),
       makeElement("span", "result-name", event.name),
       makeElement("span", "result-location", event.location)
     );

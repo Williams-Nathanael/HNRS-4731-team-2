@@ -8,7 +8,8 @@
 //     name: "Open Mic Night",
 //     location: "Student Center",
 //     date: "2026-10-16",      // year-month-day
-//     time: "19:30",           // 24-hour clock
+//     time: "19:30",           // start time, 24-hour clock
+//     endTime: "21:00",        // optional; "" if not given
 //     description: "Bring a song or a poem!",
 //     tone: "casual",          // "casual", "standard", or "formal" (sets the color)
 //     sample: true             // only on the built-in fictional events
@@ -19,6 +20,12 @@ const STORAGE_KEY = "harding-campus-events";
 // How formal an event is. Each one gets its own color stripe (see style.css).
 const TONES = ["casual", "standard", "formal"];
 const DEFAULT_TONE = "standard";
+
+// Events must happen between 7 AM and 10 PM. The hourly calendar shows these hours.
+const FIRST_HOUR = 7;
+const LAST_HOUR = 22; // 10 PM, when the day ends
+const EARLIEST_TIME = pad(FIRST_HOUR) + ":00"; // "07:00"
+const LATEST_TIME = pad(LAST_HOUR) + ":00";   // "22:00"
 
 // ---------- Dates and times ----------
 
@@ -130,6 +137,26 @@ function formatMonthLabel(monthStart) {
   return monthStart.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
+// An event's start and end times: "6:30 PM – 8:00 PM", or just "6:30 PM"
+function formatTimeRange(event) {
+  if (!event.endTime) return formatTime(event.time);
+  return formatTime(event.time) + " – " + formatTime(event.endTime);
+}
+
+// 7 -> "7 AM", 13 -> "1 PM"
+function formatHourLabel(hour) {
+  return formatTime(pad(hour) + ":00").replace(":00", "");
+}
+
+// Shortens words longer than `maxLetters` so a name fits in a narrow box:
+// abbreviateName("Lunch & Learn: Budgeting Basics", 6) -> "Lunch & Learn: Budge. Basics"
+function abbreviateName(name, maxLetters) {
+  return name.split(" ").map(function (word) {
+    if (word.length <= maxLetters) return word;
+    return word.slice(0, Math.max(maxLetters - 1, 1)) + ".";
+  }).join(" ");
+}
+
 // "09:00" -> "morning", "13:00" -> "afternoon", "19:00" -> "evening"
 function getTimeOfDay(time) {
   const hour = Number(time.slice(0, 2));
@@ -139,6 +166,58 @@ function getTimeOfDay(time) {
 }
 
 // ---------- Working with lists of events ----------
+
+// Which hour rows of the hourly calendar an event covers. The end hour is
+// not included: 6:30–8:00 PM covers the 6 PM and 7 PM rows, so it returns
+// { startHour: 18, endHour: 20 }. With no end time, an event fills one hour.
+function getHourSpan(event) {
+  const startHour = Number(event.time.slice(0, 2));
+  let endHour = startHour + 1;
+  if (event.endTime && event.endTime > event.time) {
+    const endMinutes = Number(event.endTime.slice(0, 2)) * 60 + Number(event.endTime.slice(3, 5));
+    endHour = Math.max(Math.ceil(endMinutes / 60), startHour + 1);
+  }
+  return { startHour: startHour, endHour: Math.min(endHour, LAST_HOUR) };
+}
+
+// Places one day's events on the hourly calendar. Events that share an hour
+// sit side by side, so each one gets a column number and the number of
+// columns its group is split into.
+// Returns a list of { event, startHour, endHour, column, columns }.
+// Events outside 7 AM – 10 PM (only possible for old saved ones) are left out.
+function layoutDayEvents(events) {
+  const boxes = sortEvents(events).map(function (event) {
+    return Object.assign({ event: event }, getHourSpan(event));
+  }).filter(function (box) {
+    return box.startHour >= FIRST_HOUR && box.startHour < LAST_HOUR;
+  });
+
+  // A "group" is a run of events that overlap, directly or through each other
+  let group = [];
+  let groupEndHour = 0;
+  boxes.forEach(function (box) {
+    if (box.startHour >= groupEndHour) {
+      setGroupColumns(group);
+      group = [];
+    }
+    // Use the first column that's free at this hour
+    let column = 0;
+    while (group.some(function (other) { return other.column === column && other.endHour > box.startHour; })) {
+      column++;
+    }
+    box.column = column;
+    group.push(box);
+    groupEndHour = Math.max(groupEndHour, box.endHour);
+  });
+  setGroupColumns(group);
+  return boxes;
+}
+
+// Every event in a group splits the hour the same number of ways, so they line up
+function setGroupColumns(group) {
+  const columns = group.reduce(function (most, box) { return Math.max(most, box.column + 1); }, 1);
+  group.forEach(function (box) { box.columns = columns; });
+}
 
 // Earliest first. Returns a new list and leaves the original alone.
 function sortEvents(events) {
@@ -180,6 +259,7 @@ function validateEvent(input) {
     location: String(input.location || "").trim(),
     date: String(input.date || "").trim(),
     time: String(input.time || "").trim(),
+    endTime: String(input.endTime || "").trim(),
     description: String(input.description || "").trim(),
     // Events saved before tones existed don't have one, so they get the default
     tone: String(input.tone || DEFAULT_TONE).trim()
@@ -197,6 +277,17 @@ function validateEvent(input) {
 
   if (!event.time) errors.push("Please pick a start time.");
   else if (!isValidTimeString(event.time)) errors.push("That time doesn't look right.");
+  else if (event.time < EARLIEST_TIME || event.time >= LATEST_TIME) {
+    errors.push("Events must start between 7:00 AM and 10:00 PM.");
+  }
+
+  // The end time is optional, but if it's there it has to make sense
+  if (event.endTime) {
+    if (!isValidTimeString(event.endTime)) errors.push("That end time doesn't look right.");
+    else if (isValidTimeString(event.time) && event.endTime <= event.time) {
+      errors.push("The end time must be after the start time.");
+    } else if (event.endTime > LATEST_TIME) errors.push("Events must end by 10:00 PM.");
+  }
 
   if (event.description.length > 500) errors.push("The description is too long (500 characters max).");
 
@@ -222,12 +313,17 @@ function loadSavedEvents(storage) {
     const list = JSON.parse(text);
     if (!Array.isArray(list)) return [];
     // Skip anything broken instead of crashing the page
-    return list.filter(function (event) {
-      return event && event.id && validateEvent(event).errors.length === 0;
-    });
+    return list.filter(isUsableSavedEvent);
   } catch (error) {
     return [];
   }
+}
+
+// A saved event only needs the basics to be shown. We don't re-check newer
+// rules (like 7 AM – 10 PM) here, so events saved before a rule existed aren't lost.
+function isUsableSavedEvent(event) {
+  return Boolean(event && event.id && event.name && event.location &&
+    isValidDateString(String(event.date)) && isValidTimeString(String(event.time)));
 }
 
 // Returns true if it saved, false if the browser wouldn't let us
